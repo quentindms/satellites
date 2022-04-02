@@ -1,9 +1,20 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import type { NextPage } from "next";
+import Head from "next/head";
+import Image from "next/image";
+import { useState } from "react";
+import Button from "../src/components/Button";
+import SatelliteList from "../src/components/SatelliteList";
+import { SatellitePosition, SatelliteVisualPasses } from "../types/satellites";
+import styles from "../styles/Home.module.css";
+import { positionsFetcher, visualPassesFetcher } from "../src/services/n2yo";
 
-const Home: NextPage = () => {
+interface Props {
+  satellites: SatellitePosition[];
+  visualPasses: SatelliteVisualPasses[];
+}
+const Home: NextPage<Props> = ({ satellites, visualPasses }: Props) => {
+  const [show, setShow] = useState(false);
+
   return (
     <div className={styles.container}>
       <Head>
@@ -13,60 +24,65 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
-
+        <div className={styles.help}>
+          <Button onClick={() => setShow((curr) => !curr)}>
+            <div className="startIcon">
+              <Image
+                src="/satellite.png"
+                alt="satellite icon"
+                width="20"
+                height="20"
+              />
+            </div>
+            I&apos;m lost! Help me!
+          </Button>
+        </div>
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          {show && (
+            <SatelliteList
+              satellites={satellites}
+              visualPasses={visualPasses}
+            />
+          )}
         </div>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
-  )
+  );
+};
+
+export async function getStaticProps() {
+  const norad_ids =
+    process.env.NEXT_PUBLIC_OBSERVER_NORAD_IDS?.split(",") || [];
+
+  const satellites = await Promise.all(
+    norad_ids.map((norad_id) =>
+      positionsFetcher(
+        norad_id,
+        process.env.NEXT_PUBLIC_OBSERVER_LAT,
+        process.env.NEXT_PUBLIC_OBSERVER_LNG,
+        process.env.NEXT_PUBLIC_OBSERVER_ALT
+      )
+    )
+  );
+
+  const visualPasses = await Promise.all(
+    norad_ids.map((norad_id) =>
+      visualPassesFetcher(
+        norad_id,
+        process.env.NEXT_PUBLIC_OBSERVER_LAT,
+        process.env.NEXT_PUBLIC_OBSERVER_LNG,
+        process.env.NEXT_PUBLIC_OBSERVER_ALT
+      )
+    )
+  );
+
+  return {
+    props: {
+      satellites,
+      visualPasses,
+    },
+    revalidate: 600, // 10 min
+  };
 }
 
-export default Home
+export default Home;
