@@ -1,4 +1,7 @@
-import { SatellitePosition } from "../../types/satellites";
+import {
+  SatellitePosition,
+  SatelliteVisualPasses,
+} from "../../types/satellites";
 
 export const positionsFetcher = async (
   norad_id: string,
@@ -19,7 +22,7 @@ export const visualPassesFetcher = async (
   observer_lat?: string,
   observer_lng?: string,
   observer_alt?: string
-): Promise<SatellitePosition> => {
+): Promise<SatelliteVisualPasses> => {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/visualpasses/${norad_id}/${observer_lat}/${observer_lng}/${observer_alt}/2/600&apiKey=${process.env.NEXT_PUBLIC_API_SECRET_KEY}`,
     { method: "GET", headers: new Headers(), mode: "cors", cache: "default" }
